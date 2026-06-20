@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Music Player — CodeAlpha Task 4</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #080810;
+    --card: #12121c;
+    --surface: #1a1a28;
+    --border: #252535;
+    --accent: #7c6ff7;
+    --accent2: #f472b6;
+    --text: #e8e8f0;
+    --muted: #666;
+    --green: #4ade80;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 3rem 1rem;
+    flex-wrap: wrap;
+  }
+
+  /* Player Card */
+  .player {
+    background: var(--card);
+    border-radius: 24px;
+    padding: 2rem 1.8rem 2.2rem;
+    width: 340px;
+    border: 1px solid var(--border);
+    box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+  }
+
+  .album-art {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #1e1a40, #2a1a3a);
+    margin-bottom: 1.6rem;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .album-art .emoji {
+    font-size: 5rem;
+    transition: transform 0.5s;
+    user-select: none;
+  }
+
+  .album-art.playing .emoji { animation: spin 8s linear infinite; }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .album-art .glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 50%, rgba(124,111,247,0.15), transparent 70%);
+  }
+
+  .song-info {
+    text-align: center;
+    margin-bottom: 1.4rem;
+  }
+
+  .song-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 0.25rem;
+  }
+
+  .song-artist {
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  /* Progress */
+  .progress-wrap {
+    margin-bottom: 1.4rem;
+  }
+
+  .progress-bar-track {
+    width: 100%;
+    height: 4px;
+    background: var(--surface);
+    border-radius: 999px;
+    cursor: pointer;
+    position: relative;
+    margin-bottom: 0.5rem;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 999px;
+    width: 0%;
+    transition: width 0.1s linear;
+    position: relative;
+  }
+
+  .progress-bar-fill::after {
+    content: '';
+    position: absolute;
+    right: -5px; top: -4px;
+    width: 12px; height: 12px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(124,111,247,0.6);
+  }
+
+  .time-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1.4rem;
+  }
+
+  .ctrl-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 1.4rem;
+    cursor: pointer;
+    width: 44px; height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: color 0.15s, background 0.15s;
+    padding: 0;
+  }
+
+  .ctrl-btn:hover { color: var(--text); background: var(--surface); }
+
+  .ctrl-btn.play-pause {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+    font-size: 1.5rem;
+    width: 58px; height: 58px;
+  }
+
+  .ctrl-btn.play-pause:hover { filter: brightness(1.12); background: linear-gradient(135deg, var(--accent), var(--accent2)); }
+
+  /* Volume */
+  .volume-row {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .vol-icon { font-size: 1rem; color: var(--muted); }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    flex: 1;
+    height: 4px;
+    background: var(--surface);
+    border-radius: 999px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  .vol-val { font-size: 0.75rem; color: var(--muted); min-width: 28px; text-align: right; }
+
+  /* Playlist */
+  .playlist-wrap {
+    background: var(--card);
+    border-radius: 24px;
+    padding: 1.5rem;
+    width: 280px;
+    border: 1px solid var(--border);
+    box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+    align-self: flex-start;
+  }
+
+  .playlist-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .playlist-header h2 { font-size: 0.9rem; font-weight: 700; color: var(--text); }
+
+  .autoplay-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.72rem;
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .toggle-switch {
+    width: 32px; height: 18px;
+    background: var(--border);
+    border-radius: 999px;
+    position: relative;
+    transition: background 0.2s;
+  }
+
+  .toggle-switch.on { background: var(--accent); }
+
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 12px; height: 12px;
+    background: #fff;
+    border-radius: 50%;
+    top: 3px; left: 3px;
+    transition: left 0.2s;
+  }
+
+  .toggle-switch.on::after { left: 17px; }
+
+  .playlist-list { display: flex; flex-direction: column; gap: 0.3rem; }
+
+  .pl-item {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.7rem 0.8rem;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .pl-item:hover { background: var(--surface); }
+  .pl-item.active { background: rgba(124,111,247,0.12); }
+
+  .pl-emoji { font-size: 1.4rem; flex-shrink: 0; }
+
+  .pl-info { flex: 1; min-width: 0; }
+  .pl-title { font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pl-artist { font-size: 0.72rem; color: var(--muted); }
+
+  .pl-dur { font-size: 0.72rem; color: var(--muted); flex-shrink: 0; }
+
+  .pl-item.active .pl-title { color: var(--accent); }
+
+  .now-playing-dot {
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: none;
+  }
+
+  .pl-item.active .now-playing-dot { display: block; }
+</style>
+</head>
+<body>
+
+<!-- Player -->
+<div class="player">
+  <div class="album-art" id="albumArt">
+    <div class="glow"></div>
+    <div class="emoji" id="albumEmoji">🎵</div>
+  </div>
+
+  <div class="song-info">
+    <div class="song-title" id="songTitle">Select a Song</div>
+    <div class="song-artist" id="songArtist">— Artist —</div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-bar-track" id="progressTrack" onclick="seekTo(event)">
+      <div class="progress-bar-fill" id="progressFill"></div>
+    </div>
+    <div class="time-row">
+      <span id="timeCurrent">0:00</span>
+      <span id="timeDuration">0:00</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="ctrl-btn" onclick="prevTrack()" title="Previous">&#9664;&#9664;</button>
+    <button class="ctrl-btn play-pause" id="playPauseBtn" onclick="togglePlay()">&#9654;</button>
+    <button class="ctrl-btn" onclick="nextTrack()" title="Next">&#9654;&#9654;</button>
+  </div>
+
+  <div class="volume-row">
+    <span class="vol-icon">🔈</span>
+    <input type="range" id="volumeSlider" min="0" max="100" value="70" oninput="setVolume(this.value)">
+    <span class="vol-val" id="volVal">70%</span>
+  </div>
+</div>
+
+<!-- Playlist -->
+<div class="playlist-wrap">
+  <div class="playlist-header">
+    <h2>🎶 Playlist</h2>
+    <div class="autoplay-toggle" onclick="toggleAutoplay()">
+      <div class="toggle-switch on" id="autoSwitch"></div>
+      Autoplay
+    </div>
+  </div>
+  <div class="playlist-list" id="playlistList"></div>
+</div>
+
+<audio id="audioEl"></audio>
+
+<script>
+  const tracks = [
+    { title: "Dreamwave", artist: "Lunar Echo", emoji: "🌙", duration: "3:24", src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
+    { title: "City Lights", artist: "Neon Drift", emoji: "🌆", duration: "4:05", src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
+    { title: "Ocean Floor", artist: "Deep Current", emoji: "🌊", duration: "3:52", src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" },
+    { title: "Solar Wind", artist: "Astral Plane", emoji: "☀", duration: "2:58", src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3" },
+    { title: "Forest Hum", artist: "Green Noise", emoji: "🌿", duration: "3:45", src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3" },
+    { title: "Neon Pulse", artist: "Synth Rider", emoji: "⚡", duration: "4:12", src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3" },
+  ];
+
+  let currentTrack = 0;
+  let isPlaying = false;
+  let autoplay = true;
+  const audio = document.getElementById('audioEl');
+
+  function renderPlaylist() {
+    const list = document.getElementById('playlistList');
+    list.innerHTML = tracks.map((t, i) => `
+      <div class="pl-item ${i === currentTrack ? 'active' : ''}" onclick="loadTrack(${i}, true)">
+        <div class="pl-emoji">${t.emoji}</div>
+        <div class="pl-info">
+          <div class="pl-title">${t.title}</div>
+          <div class="pl-artist">${t.artist}</div>
+        </div>
+        <div class="now-playing-dot"></div>
+        <div class="pl-dur">${t.duration}</div>
+      </div>
+    `).join('');
+  }
+
+  function loadTrack(index, andPlay = false) {
+    currentTrack = index;
+    const t = tracks[index];
+    document.getElementById('albumEmoji').textContent = t.emoji;
+    document.getElementById('songTitle').textContent = t.title;
+    document.getElementById('songArtist').textContent = t.artist;
+    audio.src = t.src;
+    audio.volume = document.getElementById('volumeSlider').value / 100;
+    document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('timeCurrent').textContent = '0:00';
+    renderPlaylist();
+    if (andPlay) { audio.play(); setPlaying(true); }
+    else { setPlaying(false); }
+  }
+
+  function setPlaying(val) {
+    isPlaying = val;
+    document.getElementById('playPauseBtn').innerHTML = val ? '⏸' : '▶';
+    document.getElementById('albumArt').classList.toggle('playing', val);
+  }
+
+  function togglePlay() {
+    if (!audio.src) { loadTrack(0, true); return; }
+    if (isPlaying) { audio.pause(); setPlaying(false); }
+    else { audio.play(); setPlaying(true); }
+  }
+
+  function prevTrack() {
+    loadTrack((currentTrack - 1 + tracks.length) % tracks.length, isPlaying);
+  }
+
+  function nextTrack() {
+    loadTrack((currentTrack + 1) % tracks.length, isPlaying || autoplay);
+  }
+
+  function setVolume(v) {
+    audio.volume = v / 100;
+    document.getElementById('volVal').textContent = v + '%';
+  }
+
+  function toggleAutoplay() {
+    autoplay = !autoplay;
+    document.getElementById('autoSwitch').classList.toggle('on', autoplay);
+  }
+
+  function seekTo(e) {
+    const track = document.getElementById('progressTrack');
+    const pct = e.offsetX / track.clientWidth;
+    if (audio.duration) audio.currentTime = pct * audio.duration;
+  }
+
+  function fmt(s) {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${sec < 10 ? '0' : ''}${sec}`;
+  }
+
+  audio.addEventListener('timeupdate', () => {
+    if (!audio.duration) return;
+    const pct = (audio.currentTime / audio.duration) * 100;
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('timeCurrent').textContent = fmt(audio.currentTime);
+    document.getElementById('timeDuration').textContent = fmt(audio.duration);
+  });
+
+  audio.addEventListener('ended', () => {
+    if (autoplay) nextTrack();
+    else setPlaying(false);
+  });
+
+  audio.addEventListener('play', () => setPlaying(true));
+  audio.addEventListener('pause', () => setPlaying(false));
+
+  // Init
+  loadTrack(0);
+  renderPlaylist();
+</script>
+</body>
+</html>
