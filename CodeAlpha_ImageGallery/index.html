@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image Gallery — CodeAlpha Task 1</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f13;
+    --surface: #18181f;
+    --border: #2a2a35;
+    --accent: #7c6ff7;
+    --accent2: #f472b6;
+    --text: #e8e8f0;
+    --muted: #888;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem 1rem 4rem;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+
+  header h1 {
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.02em;
+  }
+
+  header p {
+    color: var(--muted);
+    margin-top: 0.4rem;
+    font-size: 0.95rem;
+  }
+
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .filter-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 0.45rem 1.1rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+
+  .filter-btn:hover, .filter-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .gallery-item {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    aspect-ratio: 4/3;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    transition: transform 0.25s, box-shadow 0.25s;
+  }
+
+  .gallery-item:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 12px 40px rgba(124, 111, 247, 0.25);
+  }
+
+  .gallery-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: filter 0.3s;
+  }
+
+  .gallery-item .overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(15,15,19,0.9) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.25s;
+    display: flex;
+    align-items: flex-end;
+    padding: 1rem;
+  }
+
+  .gallery-item:hover .overlay { opacity: 1; }
+
+  .overlay span {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .gallery-item.hidden { display: none; }
+
+  /* Lightbox */
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .lightbox.open { display: flex; }
+
+  .lb-content {
+    position: relative;
+    max-width: 900px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .lb-content img {
+    max-height: 75vh;
+    max-width: 100%;
+    border-radius: 10px;
+    object-fit: contain;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+
+  .lb-caption {
+    color: #ccc;
+    font-size: 0.9rem;
+    text-align: center;
+  }
+
+  .lb-nav {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .lb-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    font-family: inherit;
+  }
+
+  .lb-btn:hover { background: var(--accent); border-color: var(--accent); }
+
+  .lb-close {
+    position: absolute;
+    top: -14px; right: 0;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.8rem;
+    cursor: pointer;
+    line-height: 1;
+  }
+
+  .lb-counter { color: var(--muted); font-size: 0.85rem; min-width: 60px; text-align: center; }
+
+  @media (max-width: 500px) {
+    .gallery { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📸 Photo Gallery</h1>
+  <p>Click any image to explore in full view</p>
+</header>
+
+<div class="filters">
+  <button class="filter-btn active" onclick="filterGallery('all', this)">All</button>
+  <button class="filter-btn" onclick="filterGallery('nature', this)">Nature</button>
+  <button class="filter-btn" onclick="filterGallery('city', this)">City</button>
+  <button class="filter-btn" onclick="filterGallery('abstract', this)">Abstract</button>
+  <button class="filter-btn" onclick="filterGallery('animals', this)">Animals</button>
+</div>
+
+<div class="gallery" id="gallery">
+  <!-- Nature -->
+  <div class="gallery-item" data-cat="nature" data-index="0" onclick="openLightbox(0)">
+    <img src="https://images.unsplash.com/photo-1448375240586-882707db888b?w=600&h=450&fit=crop" alt="Forest Path">
+    <div class="overlay"><span>🌿 Forest Path</span></div>
+  </div>
+  <div class="gallery-item" data-cat="nature" data-index="1" onclick="openLightbox(1)">
+    <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=450&fit=crop" alt="Mountain Lake">
+    <div class="overlay"><span>🏔 Mountain Lake</span></div>
+  </div>
+  <div class="gallery-item" data-cat="nature" data-index="2" onclick="openLightbox(2)">
+    <img src="https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=600&h=450&fit=crop" alt="Sunset Valley">
+    <div class="overlay"><span>🌅 Sunset Valley</span></div>
+  </div>
+  <!-- City -->
+  <div class="gallery-item" data-cat="city" data-index="3" onclick="openLightbox(3)">
+    <img src="https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=600&h=450&fit=crop" alt="Night Skyline">
+    <div class="overlay"><span>🌃 Night Skyline</span></div>
+  </div>
+  <div class="gallery-item" data-cat="city" data-index="4" onclick="openLightbox(4)">
+    <img src="https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=600&h=450&fit=crop" alt="Street Life">
+    <div class="overlay"><span>🏙 Street Life</span></div>
+  </div>
+  <div class="gallery-item" data-cat="city" data-index="5" onclick="openLightbox(5)">
+    <img src="https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=600&h=450&fit=crop" alt="Urban Bridge">
+    <div class="overlay"><span>🌉 Urban Bridge</span></div>
+  </div>
+  <!-- Abstract -->
+  <div class="gallery-item" data-cat="abstract" data-index="6" onclick="openLightbox(6)">
+    <img src="https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=600&h=450&fit=crop" alt="Color Burst">
+    <div class="overlay"><span>🎨 Color Burst</span></div>
+  </div>
+  <div class="gallery-item" data-cat="abstract" data-index="7" onclick="openLightbox(7)">
+    <img src="https://images.unsplash.com/photo-1507908708918-778587c9e563?w=600&h=450&fit=crop" alt="Geometry">
+    <div class="overlay"><span>🔷 Geometry</span></div>
+  </div>
+  <div class="gallery-item" data-cat="abstract" data-index="8" onclick="openLightbox(8)">
+    <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=450&fit=crop" alt="Texture Flow">
+    <div class="overlay"><span>🌀 Texture Flow</span></div>
+  </div>
+  <!-- Animals -->
+  <div class="gallery-item" data-cat="animals" data-index="9" onclick="openLightbox(9)">
+    <img src="https://images.unsplash.com/photo-1484406566174-9da000fda645?w=600&h=450&fit=crop" alt="Wild Deer">
+    <div class="overlay"><span>🦌 Wild Deer</span></div>
+  </div>
+  <div class="gallery-item" data-cat="animals" data-index="10" onclick="openLightbox(10)">
+    <img src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600&h=450&fit=crop" alt="Ocean Life">
+    <div class="overlay"><span>🐠 Ocean Life</span></div>
+  </div>
+  <div class="gallery-item" data-cat="animals" data-index="11" onclick="openLightbox(11)">
+    <img src="https://images.unsplash.com/photo-1611689342806-0863700ce1e4?w=600&h=450&fit=crop" alt="Bird of Prey">
+    <div class="overlay"><span>🦅 Bird of Prey</span></div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox">
+  <div class="lb-content">
+    <button class="lb-close" onclick="closeLightbox()">✕</button>
+    <img id="lb-img" src="" alt="">
+    <p class="lb-caption" id="lb-caption"></p>
+    <div class="lb-nav">
+      <button class="lb-btn" onclick="navigate(-1)">&#8592;</button>
+      <span class="lb-counter" id="lb-counter"></span>
+      <button class="lb-btn" onclick="navigate(1)">&#8594;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const items = Array.from(document.querySelectorAll('.gallery-item'));
+  let currentIndex = 0;
+  let visibleIndexes = items.map((_, i) => i);
+
+  function filterGallery(cat, btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    visibleIndexes = [];
+    items.forEach((item, i) => {
+      const match = cat === 'all' || item.dataset.cat === cat;
+      item.classList.toggle('hidden', !match);
+      if (match) visibleIndexes.push(i);
+    });
+  }
+
+  function openLightbox(index) {
+    currentIndex = index;
+    updateLightbox();
+    document.getElementById('lightbox').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function navigate(dir) {
+    const pos = visibleIndexes.indexOf(currentIndex);
+    const next = (pos + dir + visibleIndexes.length) % visibleIndexes.length;
+    currentIndex = visibleIndexes[next];
+    updateLightbox();
+  }
+
+  function updateLightbox() {
+    const item = items[currentIndex];
+    const img = item.querySelector('img');
+    const caption = item.querySelector('.overlay span');
+    document.getElementById('lb-img').src = img.src;
+    document.getElementById('lb-caption').textContent = caption.textContent;
+    const pos = visibleIndexes.indexOf(currentIndex);
+    document.getElementById('lb-counter').textContent = `${pos + 1} / ${visibleIndexes.length}`;
+  }
+
+  document.getElementById('lightbox').addEventListener('click', function(e) {
+    if (e.target === this) closeLightbox();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (!document.getElementById('lightbox').classList.contains('open')) return;
+    if (e.key === 'ArrowLeft') navigate(-1);
+    if (e.key === 'ArrowRight') navigate(1);
+    if (e.key === 'Escape') closeLightbox();
+  });
+</script>
+</body>
+</html>
